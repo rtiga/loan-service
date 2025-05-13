@@ -1,5 +1,6 @@
 package com.example.loanservice.models;
 
+import com.example.loanservice.models.dto.LoanRequest;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -31,12 +32,20 @@ public class Loan {
 
     @OneToMany(mappedBy = "loan", cascade = CascadeType.ALL)
     private List<Investment> investments;
+    private LocalDateTime createdAt = LocalDateTime.now();
 
     public enum LoanState {
         PROPOSED, APPROVED, INVESTED, DISBURSED
     }
 
     public Loan() {
+    }
+
+    public Loan(LoanRequest loanRequest) {
+        this.borrowerId = loanRequest.getBorrowerId();
+        this.principal = loanRequest.getPrincipal();
+        this.rate = loanRequest.getRate();
+        this.roi = loanRequest.getRoi();
     }
 
     public Long getId() {
@@ -149,5 +158,13 @@ public class Loan {
 
     public void setInvestments(List<Investment> investments) {
         this.investments = investments;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 }

@@ -1,6 +1,10 @@
 package com.example.loanservice.controllers;
 
 import com.example.loanservice.models.Loan;
+import com.example.loanservice.models.dto.ApprovalRequest;
+import com.example.loanservice.models.dto.DisburseRequest;
+import com.example.loanservice.models.dto.InvestRequest;
+import com.example.loanservice.models.dto.LoanRequest;
 import com.example.loanservice.services.LoanService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,8 +22,8 @@ public class LoanController {
     }
 
     @PostMapping
-    public ResponseEntity<Loan> createLoan(@RequestBody Loan loan) {
-        return ResponseEntity.ok(loanService.createLoan(loan));
+    public ResponseEntity<Loan> createLoan(@RequestBody LoanRequest body) {
+        return ResponseEntity.ok(loanService.createLoan(new Loan(body)));
     }
 
     @GetMapping("/{id}")
@@ -30,23 +34,22 @@ public class LoanController {
     }
 
     @PostMapping("/{id}/approve")
-    public ResponseEntity<Loan> approveLoan(@PathVariable Long id, @RequestBody Map<String, String> body) {
-        return loanService.approveLoan(id, body.get("photo"), body.get("employeeId"))
+    public ResponseEntity<Loan> approveLoan(@PathVariable Long id, @RequestBody ApprovalRequest body) {
+        return loanService.approveLoan(id, body.getPhoto(), body.getEmployeeId())
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping("/{id}/invest")
-    public ResponseEntity<Loan> invest(@PathVariable Long id, @RequestBody Map<String, String> body) {
-        BigDecimal amount = new BigDecimal(body.get("amount"));
-        return loanService.addInvestment(id, body.get("investorId"), amount)
+    public ResponseEntity<Loan> invest(@PathVariable Long id, @RequestBody InvestRequest body) {
+        return loanService.addInvestment(id, body.getInvestorId(), body.getAmount() )
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping("/{id}/disburse")
-    public ResponseEntity<Loan> disburse(@PathVariable Long id, @RequestBody Map<String, String> body) {
-        return loanService.disburseLoan(id, body.get("proof"), body.get("employeeId"))
+    public ResponseEntity<Loan> disburse(@PathVariable Long id, @RequestBody DisburseRequest body) {
+        return loanService.disburseLoan(id, body.getProof(), body.getEmployeeId())
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
