@@ -31,7 +31,7 @@ public class LoanService {
 
     public Optional<Loan> approveLoan(Long id, String photo, String employeeId) {
         return loanRepo.findById(id).map(loan -> {
-            if (loan.getState() != Loan.LoanState.PROPOSED) throw new IllegalStateException("Only proposed loans can be approved.");
+            if (loan.getState() != Loan.LoanState.PROPOSED) throw new IllegalStateException("Only proposed loans can be approved");
             loan.setState(Loan.LoanState.APPROVED);
             loan.setApprovalDate(LocalDateTime.now());
             loan.setApprovalPhoto(photo);
@@ -43,11 +43,11 @@ public class LoanService {
     public Optional<Loan> addInvestment(Long loanId, String investorId, BigDecimal amount) {
         return loanRepo.findById(loanId).map(loan -> {
             if (loan.getState() != Loan.LoanState.APPROVED && loan.getState() != Loan.LoanState.INVESTED)
-                throw new IllegalStateException("Investments can only be made on approved loans.");
+                throw new IllegalStateException("Investments can only be made on approved loans");
 
             BigDecimal totalInvested = loan.getInvestments().stream().map(Investment::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
             if (totalInvested.add(amount).compareTo(loan.getPrincipal()) > 0)
-                throw new IllegalArgumentException("Investment exceeds loan principal.");
+                throw new IllegalArgumentException("Investment exceeds loan principal");
 
             Investment investment = new Investment();
             investment.setLoan(loan);
@@ -68,7 +68,7 @@ public class LoanService {
     public Optional<Loan> disburseLoan(Long id, String proof, String employeeId) {
         return loanRepo.findById(id).map(loan -> {
             if (loan.getState() != Loan.LoanState.INVESTED)
-                throw new IllegalStateException("Only invested loans can be disbursed.");
+                throw new IllegalStateException("Only invested loans can be disbursed");
             loan.setState(Loan.LoanState.DISBURSED);
             loan.setDisbursementDate(LocalDateTime.now());
             loan.setDisbursementProof(proof);

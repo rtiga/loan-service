@@ -50,10 +50,24 @@ public class LoanControllerTest {
         mockMvc.perform(post("/loans/1/approve")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{" +
-                                "\"approvalPhoto\":\"photo.jpg\"," +
-                                "\"validatorEmployeeId\":\"emp001\"}"))
+                                "\"photo\":\"photo.jpg\"," +
+                                "\"employeeId\":\"emp001\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.state").value("APPROVED"));
+    }
+
+    @Test
+    void testApproveLoanApiIllegalState() throws Exception {
+        when(loanService.addInvestment(eq(1L), eq("investor002"), eq(BigDecimal.valueOf(2000))))
+                .thenThrow(new IllegalStateException("Only proposed loans can be approved"));
+
+        mockMvc.perform(post("/loans/1/invest")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{" +
+                                "\"investorId\":\"investor002\"," +
+                                "\"amount\":2000}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Only proposed loans can be approved"));
     }
 
     @Test
@@ -65,10 +79,26 @@ public class LoanControllerTest {
         mockMvc.perform(post("/loans/1/disburse")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{" +
-                                "\"disbursementProof\":\"signed.jpg\"," +
-                                "\"disbursementEmployeeId\":\"emp009\"}"))
+                                "\"proof\":\"signed.jpg\"," +
+                                "\"employeeId\":\"emp009\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.state").value("DISBURSED"));
+    }
+
+    @Test
+    void testDisburseLoanApiIllegalState() throws Exception {
+        sampleLoan.setState(Loan.LoanState.DISBURSED);
+
+        when(loanService.disburseLoan(eq(1L), eq("signed.jpg"), eq("emp009")))
+                .thenThrow(new IllegalStateException("Only invested loans can be disbursed"));
+
+        mockMvc.perform(post("/loans/1/disburse")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{" +
+                                "\"proof\":\"signed.jpg\"," +
+                                "\"employeeId\":\"emp009\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Only invested loans can be disbursed"));
     }
 
     @Test
@@ -78,8 +108,8 @@ public class LoanControllerTest {
         mockMvc.perform(post("/loans/1/approve")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{" +
-                                "\"approvalPhoto\":\"photo.jpg\"," +
-                                "\"validatorEmployeeId\":\"emp001\"}"))
+                                "\"photo\":\"photo.jpg\"," +
+                                "\"employeeId\":\"emp001\"}"))
                 .andExpect(status().isNotFound());
     }
 
@@ -122,6 +152,6 @@ public class LoanControllerTest {
                                 "\"investorId\":\"investor002\"," +
                                 "\"amount\":2000}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string("Investment exceeds loan principal"));
+                .andExpect(jsonPath("$.message").value("Investment exceeds loan principal"));
     }
 }
