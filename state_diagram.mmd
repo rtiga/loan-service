@@ -1,0 +1,6 @@
+stateDiagram-v2
+    [*] --> Proposed
+    Proposed --> Approved: Staff Approval
+    Approved --> Invested: Fully Funded
+    Invested --> Disbursed: Disbursement
+    Disbursed --> [*]

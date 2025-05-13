@@ -42,7 +42,7 @@ public class LoanService {
 
     public Optional<Loan> addInvestment(Long loanId, String investorId, BigDecimal amount) {
         return loanRepo.findById(loanId).map(loan -> {
-            if (loan.getState() != Loan.LoanState.APPROVED && loan.getState() != Loan.LoanState.INVESTED)
+            if (loan.getState() != Loan.LoanState.APPROVED)
                 throw new IllegalStateException("Investments can only be made on approved loans");
 
             BigDecimal totalInvested = loan.getInvestments().stream().map(Investment::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
