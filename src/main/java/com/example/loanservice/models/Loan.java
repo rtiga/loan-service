@@ -1,7 +1,6 @@
 package com.example.loanservice.models;
 
 import jakarta.persistence.*;
-import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -9,7 +8,6 @@ import java.util.List;
 
 @Entity
 @Table
-@Data
 public class Loan {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,4 +31,123 @@ public class Loan {
 
     @OneToMany(mappedBy = "loan", cascade = CascadeType.ALL)
     private List<Investment> investments;
+
+    public enum LoanState {
+        PROPOSED, APPROVED, INVESTED, DISBURSED
+    }
+
+    public Loan() {
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getBorrowerId() {
+        return borrowerId;
+    }
+
+    public void setBorrowerId(String borrowerId) {
+        this.borrowerId = borrowerId;
+    }
+
+    public BigDecimal getPrincipal() {
+        return principal;
+    }
+
+    public void setPrincipal(BigDecimal principal) {
+        this.principal = principal;
+    }
+
+    public BigDecimal getRate() {
+        return rate;
+    }
+
+    public void setRate(BigDecimal rate) {
+        this.rate = rate;
+    }
+
+    public BigDecimal getRoi() {
+        return roi;
+    }
+
+    public void setRoi(BigDecimal roi) {
+        this.roi = roi;
+    }
+
+    public String getAgreementLink() {
+        return agreementLink;
+    }
+
+    public void setAgreementLink(String agreementLink) {
+        this.agreementLink = agreementLink;
+    }
+
+    public LoanState getState() {
+        return state;
+    }
+
+    public void setState(LoanState state) {
+        this.state = state;
+    }
+
+    public LocalDateTime getApprovalDate() {
+        return approvalDate;
+    }
+
+    public void setApprovalDate(LocalDateTime approvalDate) {
+        this.approvalDate = approvalDate;
+    }
+
+    public String getApprovalPhoto() {
+        return approvalPhoto;
+    }
+
+    public void setApprovalPhoto(String approvalPhoto) {
+        this.approvalPhoto = approvalPhoto;
+    }
+
+    public String getValidatorEmployeeId() {
+        return validatorEmployeeId;
+    }
+
+    public void setValidatorEmployeeId(String validatorEmployeeId) {
+        this.validatorEmployeeId = validatorEmployeeId;
+    }
+
+    public LocalDateTime getDisbursementDate() {
+        return disbursementDate;
+    }
+
+    public void setDisbursementDate(LocalDateTime disbursementDate) {
+        this.disbursementDate = disbursementDate;
+    }
+
+    public String getDisbursementProof() {
+        return disbursementProof;
+    }
+
+    public void setDisbursementProof(String disbursementProof) {
+        this.disbursementProof = disbursementProof;
+    }
+
+    public String getDisbursementEmployeeId() {
+        return disbursementEmployeeId;
+    }
+
+    public void setDisbursementEmployeeId(String disbursementEmployeeId) {
+        this.disbursementEmployeeId = disbursementEmployeeId;
+    }
+
+    public List<Investment> getInvestments() {
+        return investments;
+    }
+
+    public void setInvestments(List<Investment> investments) {
+        this.investments = investments;
+    }
 }

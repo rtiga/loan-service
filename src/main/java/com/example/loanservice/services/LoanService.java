@@ -2,7 +2,6 @@ package com.example.loanservice.services;
 
 import com.example.loanservice.models.Investment;
 import com.example.loanservice.models.Loan;
-import com.example.loanservice.models.LoanState;
 import com.example.loanservice.models.repositories.InvestmentRepository;
 import com.example.loanservice.models.repositories.LoanRepository;
 import org.springframework.stereotype.Service;
@@ -22,7 +21,7 @@ public class LoanService {
     }
 
     public Loan createLoan(Loan loan) {
-        loan.setState(LoanState.PROPOSED);
+        loan.setState(Loan.LoanState.PROPOSED);
         return loanRepo.save(loan);
     }
 
@@ -32,8 +31,8 @@ public class LoanService {
 
     public Optional<Loan> approveLoan(Long id, String photo, String employeeId) {
         return loanRepo.findById(id).map(loan -> {
-            if (loan.getState() != LoanState.PROPOSED) throw new IllegalStateException("Only proposed loans can be approved.");
-            loan.setState(LoanState.APPROVED);
+            if (loan.getState() != Loan.LoanState.PROPOSED) throw new IllegalStateException("Only proposed loans can be approved.");
+            loan.setState(Loan.LoanState.APPROVED);
             loan.setApprovalDate(LocalDateTime.now());
             loan.setApprovalPhoto(photo);
             loan.setValidatorEmployeeId(employeeId);
@@ -43,7 +42,7 @@ public class LoanService {
 
     public Optional<Loan> addInvestment(Long loanId, String investorId, BigDecimal amount) {
         return loanRepo.findById(loanId).map(loan -> {
-            if (loan.getState() != LoanState.APPROVED && loan.getState() != LoanState.INVESTED)
+            if (loan.getState() != Loan.LoanState.APPROVED && loan.getState() != Loan.LoanState.INVESTED)
                 throw new IllegalStateException("Investments can only be made on approved loans.");
 
             BigDecimal totalInvested = loan.getInvestments().stream().map(Investment::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -58,7 +57,7 @@ public class LoanService {
 
             totalInvested = totalInvested.add(amount);
             if (totalInvested.compareTo(loan.getPrincipal()) == 0) {
-                loan.setState(LoanState.INVESTED);
+                loan.setState(Loan.LoanState.INVESTED);
                 loan.setAgreementLink("http://example.com/agreement/" + loan.getId());
             }
 
@@ -68,9 +67,9 @@ public class LoanService {
 
     public Optional<Loan> disburseLoan(Long id, String proof, String employeeId) {
         return loanRepo.findById(id).map(loan -> {
-            if (loan.getState() != LoanState.INVESTED)
+            if (loan.getState() != Loan.LoanState.INVESTED)
                 throw new IllegalStateException("Only invested loans can be disbursed.");
-            loan.setState(LoanState.DISBURSED);
+            loan.setState(Loan.LoanState.DISBURSED);
             loan.setDisbursementDate(LocalDateTime.now());
             loan.setDisbursementProof(proof);
             loan.setDisbursementEmployeeId(employeeId);

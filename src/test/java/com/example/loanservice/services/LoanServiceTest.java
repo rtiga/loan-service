@@ -1,138 +1,105 @@
 package com.example.loanservice.services;
 
-import com.example.loanservice.controllers.LoanController;
-import com.example.loanservice.models.Loan;
-import com.example.loanservice.models.LoanState;
+import com.example.loanservice.models.*;
 import com.example.loanservice.models.repositories.InvestmentRepository;
 import com.example.loanservice.models.repositories.LoanRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(LoanController.class)
 public class LoanServiceTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockBean
     private LoanService loanService;
-
-    @MockBean
     private LoanRepository loanRepo;
-
-    @MockBean
     private InvestmentRepository investmentRepo;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    private Loan sampleLoan;
-
     @BeforeEach
-    void setup() {
-        sampleLoan = new Loan();
-        sampleLoan.setId(1L);
-        sampleLoan.setBorrowerId("123");
-        sampleLoan.setPrincipal(BigDecimal.valueOf(1000));
-        sampleLoan.setState(LoanState.PROPOSED);
+    void setUp() {
+        loanRepo = Mockito.mock(LoanRepository.class);
+        investmentRepo = Mockito.mock(InvestmentRepository.class);
+        loanService = new LoanService(loanRepo, investmentRepo);
     }
 
     @Test
-    void testApproveLoanApi() throws Exception {
-        sampleLoan.setState(LoanState.APPROVED);
+    void testCreateLoan() {
+        Loan loan = new Loan();
+        loan.setBorrowerId("123");
+        loan.setPrincipal(BigDecimal.valueOf(10000));
 
-        when(loanService.approveLoan(eq(1L), eq("photo.jpg"), eq("emp001"))).thenReturn(Optional.of(sampleLoan));
+        when(loanRepo.save(any())).thenReturn(loan);
+        Loan created = loanService.createLoan(loan);
 
-        mockMvc.perform(post("/loans/1/approve")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{" +
-                                "\"approvalPhoto\":\"photo.jpg\"," +
-                                "\"validatorEmployeeId\":\"emp001\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.state").value("APPROVED"));
+        assertEquals("123", created.getBorrowerId());
     }
 
     @Test
-    void testDisburseLoanApi() throws Exception {
-        sampleLoan.setState(LoanState.DISBURSED);
+    void testInvestmentExceedsPrincipal() {
+        Loan loan = new Loan();
+        loan.setState(Loan.LoanState.APPROVED);
+        loan.setPrincipal(BigDecimal.valueOf(1000));
+        loan.setInvestments(List.of());
 
-        when(loanService.disburseLoan(eq(1L), eq("signed.jpg"), eq("emp009"))).thenReturn(Optional.of(sampleLoan));
+        when(loanRepo.findById(1L)).thenReturn(Optional.of(loan));
 
-        mockMvc.perform(post("/loans/1/disburse")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{" +
-                                "\"disbursementProof\":\"signed.jpg\"," +
-                                "\"disbursementEmployeeId\":\"emp009\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.state").value("DISBURSED"));
+        assertThrows(IllegalArgumentException.class, () -> {
+            loanService.addInvestment(1L, "investor1", BigDecimal.valueOf(1500));
+        });
     }
 
     @Test
-    void testApproveLoanNotFound() throws Exception {
-        when(loanService.approveLoan(anyLong(), any(), any())).thenReturn(Optional.empty());
+    void testDisburseNonInvestedLoanThrows() {
+        Loan loan = new Loan();
+        loan.setState(Loan.LoanState.APPROVED);
 
-        mockMvc.perform(post("/loans/1/approve")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{" +
-                                "\"approvalPhoto\":\"photo.jpg\"," +
-                                "\"validatorEmployeeId\":\"emp001\"}"))
-                .andExpect(status().isNotFound());
+        when(loanRepo.findById(1L)).thenReturn(Optional.of(loan));
+
+        assertThrows(IllegalStateException.class, () -> {
+            loanService.disburseLoan(1L, "proof.jpg", "emp123");
+        });
     }
 
     @Test
-    void testAddInvestmentApi() throws Exception {
-        sampleLoan.setState(LoanState.INVESTED);
+    void testApproveLoan() {
+        Loan loan = new Loan();
+        loan.setId(1L);
+        loan.setState(Loan.LoanState.PROPOSED);
 
-        when(loanService.addInvestment(eq(1L), eq("investor001"), eq(BigDecimal.valueOf(500))))
-                .thenReturn(Optional.of(sampleLoan));
+        when(loanRepo.findById(1L)).thenReturn(Optional.of(loan));
+        when(loanRepo.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        mockMvc.perform(post("/loans/1/invest")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{" +
-                                "\"investorId\":\"investor001\"," +
-                                "\"amount\":500}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.state").value("INVESTED"));
+        Optional<Loan> result = loanService.approveLoan(1L, "photo.png", "emp001");
+
+        assertTrue(result.isPresent());
+        assertEquals(Loan.LoanState.APPROVED, result.get().getState());
+        assertEquals("photo.png", result.get().getApprovalPhoto());
+        assertEquals("emp001", result.get().getValidatorEmployeeId());
+        assertNotNull(result.get().getApprovalDate());
     }
 
     @Test
-    void testAddInvestmentLoanNotFound() throws Exception {
-        when(loanService.addInvestment(anyLong(), any(), any())).thenReturn(Optional.empty());
+    void testDisburseLoanSuccess() {
+        Loan loan = new Loan();
+        loan.setId(1L);
+        loan.setState(Loan.LoanState.INVESTED);
 
-        mockMvc.perform(post("/loans/1/invest")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{" +
-                                "\"investorId\":\"investor001\"," +
-                                "\"amount\":500}"))
-                .andExpect(status().isNotFound());
-    }
+        when(loanRepo.findById(1L)).thenReturn(Optional.of(loan));
+        when(loanRepo.save(any())).thenAnswer(i -> i.getArgument(0));
 
-    @Test
-    void testAddInvestmentExceedingPrincipal() throws Exception {
-        when(loanService.addInvestment(eq(1L), eq("investor002"), eq(BigDecimal.valueOf(2000))))
-                .thenThrow(new IllegalArgumentException("Investment exceeds loan principal"));
+        Optional<Loan> result = loanService.disburseLoan(1L, "proof.jpg", "emp123");
 
-        mockMvc.perform(post("/loans/1/invest")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{" +
-                                "\"investorId\":\"investor002\"," +
-                                "\"amount\":2000}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().string("Investment exceeds loan principal"));
+        assertTrue(result.isPresent());
+        assertEquals(Loan.LoanState.DISBURSED, result.get().getState());
+        assertEquals("proof.jpg", result.get().getDisbursementProof());
+        assertEquals("emp123", result.get().getDisbursementEmployeeId());
+        assertNotNull(result.get().getDisbursementDate());
     }
 }
 
